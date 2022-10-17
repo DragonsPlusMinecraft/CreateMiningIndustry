@@ -4,8 +4,8 @@ import com.google.common.base.Supplier;
 import com.google.gson.JsonElement;
 import com.simibubi.create.foundation.utility.FilesHelper;
 import com.simibubi.create.foundation.utility.Lang;
-import plus.dragons.createenchantmentindustry.EnchantmentIndustry;
-import plus.dragons.createenchantmentindustry.foundation.data.advancement.ModAdvancements;
+import plus.dragons.createminingindustry.MiningIndustry;
+import plus.dragons.createminingindustry.foundation.data.advancement.ModAdvancements;
 
 /*
 MIT License
@@ -60,7 +60,7 @@ public enum LangPartials {
 
 	private JsonElement fromResource() {
 		String fileName = Lang.asId(name());
-		String filepath = "assets/" + EnchantmentIndustry.MOD_ID + "/lang/partial/" + fileName + ".json";
+		String filepath = "assets/" + MiningIndustry.MOD_ID + "/lang/partial/" + fileName + ".json";
 		JsonElement element = FilesHelper.loadJsonResource(filepath);
 		if (element == null)
 			throw new IllegalStateException(String.format("Could not find default lang file: %s", filepath));

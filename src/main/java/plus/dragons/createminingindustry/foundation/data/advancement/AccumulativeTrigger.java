@@ -104,13 +104,13 @@ public class AccumulativeTrigger extends SimpleCriterionTrigger<AccumulativeTrig
     public static class TriggerInstance extends AbstractCriterionTriggerInstance {
         private final MinMaxBounds.Ints requirement;
 
-        public static TriggerInstance ofBook(int requirement){
+/*        public static TriggerInstance ofBook(int requirement){
             return new TriggerInstance(ModTriggers.BOOK_PRINTED.id, EntityPredicate.Composite.ANY, MinMaxBounds.Ints.atLeast(requirement));
         }
 
         public static TriggerInstance ofExperienceDisenchanted(int requirement){
             return new TriggerInstance(ModTriggers.DISENCHANTED.id, EntityPredicate.Composite.ANY, MinMaxBounds.Ints.atLeast(requirement));
-        }
+        }*/
 
         public TriggerInstance(ResourceLocation pCriterion, EntityPredicate.Composite pPlayer, MinMaxBounds.Ints requirement) {
             super(pCriterion, pPlayer);

@@ -1,52 +1,7 @@
 package plus.dragons.createminingindustry.foundation.ponder.content;
 
-import com.google.common.collect.Lists;
-import com.simibubi.create.AllBlocks;
-import com.simibubi.create.AllItems;
-import com.simibubi.create.content.contraptions.components.deployer.DeployerTileEntity;
-import com.simibubi.create.content.contraptions.fluids.actors.SpoutTileEntity;
-import com.simibubi.create.content.contraptions.fluids.tank.CreativeFluidTankTileEntity;
-import com.simibubi.create.content.contraptions.fluids.tank.FluidTankTileEntity;
-import com.simibubi.create.content.contraptions.processing.burner.BlazeBurnerBlock;
-import com.simibubi.create.foundation.ponder.*;
-import com.simibubi.create.foundation.ponder.element.BeltItemElement;
-import com.simibubi.create.foundation.ponder.element.EntityElement;
-import com.simibubi.create.foundation.ponder.element.InputWindowElement;
-import com.simibubi.create.foundation.ponder.instruction.EmitParticlesInstruction;
-import com.simibubi.create.foundation.utility.Pointing;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.core.particles.BlockParticleOption;
-import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.animal.Sheep;
-import net.minecraft.world.item.DyeColor;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
-import net.minecraft.world.item.enchantment.Enchantment;
-import net.minecraft.world.item.enchantment.EnchantmentHelper;
-import net.minecraft.world.item.enchantment.Enchantments;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
-import net.minecraftforge.fluids.capability.IFluidHandler;
-import net.minecraftforge.fluids.capability.templates.FluidTank;
-import plus.dragons.createenchantmentindustry.content.contraptions.enchantments.BlazeEnchanterBlockEntity;
-import plus.dragons.createenchantmentindustry.content.contraptions.enchantments.CopierBlockEntity;
-import plus.dragons.createenchantmentindustry.entry.ModBlocks;
-import plus.dragons.createenchantmentindustry.entry.ModFluids;
-import plus.dragons.createenchantmentindustry.entry.ModItems;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.stream.Stream;
-
-public class EnchantmentScenes {
-    public static void disenchant(SceneBuilder scene, SceneBuildingUtil util){
+public class Scenes {
+    /*public static void disenchant(SceneBuilder scene, SceneBuildingUtil util){
         scene.title("disenchant", ""); // We do not use PonderLocalization. For title only
         scene.configureBasePlate(0, 0, 7);
         scene.scaleSceneView(.68f);
@@ -476,5 +431,5 @@ public class EnchantmentScenes {
         EnchantmentHelper.setEnchantments(Map.of(enchantment,level),book);
         ret.getOrCreateTag().put("target",book.serializeNBT());
         return ret;
-    }
+    }*/
 }
