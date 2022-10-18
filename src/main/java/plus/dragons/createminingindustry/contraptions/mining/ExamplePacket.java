@@ -14,7 +14,6 @@ public class ExamplePacket extends SimplePacketBase {
     private int index;
     private ItemStack itemStack;
 
-
     public ExamplePacket(int index, ItemStack enchantedBook) {
         this.index = index;
         itemStack = enchantedBook;

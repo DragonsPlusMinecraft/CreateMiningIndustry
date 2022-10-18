@@ -1,15 +1,19 @@
 package plus.dragons.createminingindustry.entry;
 
 import com.simibubi.create.Create;
-import com.simibubi.create.content.AllSections;
 import com.simibubi.create.foundation.data.CreateRegistrate;
+import com.tterrag.registrate.util.entry.ItemEntry;
 import plus.dragons.createminingindustry.MiningIndustry;
+import plus.dragons.createminingindustry.contraptions.mining.drill.PortableDrillItem;
 import plus.dragons.createminingindustry.event.FillCreateItemGroupEvent;
 
 public class ModItems {
 
-    private static final CreateRegistrate REGISTRATE = MiningIndustry.registrate()
-            .creativeModeTab(() -> Create.BASE_CREATIVE_TAB).startSection(AllSections.KINETICS);
+    private static final CreateRegistrate REGISTRATE = MiningIndustry.registrate();
+
+    public static final ItemEntry<PortableDrillItem> PORTABLE_DRILL = REGISTRATE.item("portable_one_time_drill", PortableDrillItem::new)
+            .properties(prop -> prop.stacksTo(16))
+            .register();
 
     /*public static final ItemEntry<EnchantingGuideItem> ENCHANTING_GUIDE = REGISTRATE.item("enchanting_guide", EnchantingGuideItem::new)
             .properties(prop -> prop.stacksTo(1))

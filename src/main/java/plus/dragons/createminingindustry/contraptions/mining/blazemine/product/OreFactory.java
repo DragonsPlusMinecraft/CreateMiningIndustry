@@ -1,4 +1,4 @@
-package plus.dragons.createminingindustry.foundation.ore;
+package plus.dragons.createminingindustry.contraptions.mining.blazemine.product;
 
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
