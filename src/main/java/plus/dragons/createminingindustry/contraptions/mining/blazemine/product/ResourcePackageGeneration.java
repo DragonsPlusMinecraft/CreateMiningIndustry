@@ -166,7 +166,7 @@ class ResourcePackageGeneration {
     record TileWorleyNoisePointInfo(int x, int y, long tileSeed){ }
 
     public record PackageDistribution(double countCoefficient, int maxCountInHeight, int spreadRange, @Nullable PackageHighAltitudeDistribution highAltitudeDistribution){
-        public boolean isInRange(int y){
+        public boolean hasPackage(int y){
             if(y<81)
                 return maxCountInHeight + spreadRange >= y && maxCountInHeight - spreadRange <= y;
             else{
@@ -193,7 +193,9 @@ class ResourcePackageGeneration {
 
     public record PackageHighAltitudeDistribution(double countCoefficient, int spreadRange){
         public double getCount(int y){
-
+            int dif = y - 80;
+            double ret = countCoefficient * (spreadRange - dif) / spreadRange;
+            return ret < 0? 0: ret;
         }
     }
 
