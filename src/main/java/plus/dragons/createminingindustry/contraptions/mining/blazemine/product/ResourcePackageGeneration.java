@@ -10,6 +10,7 @@ import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -21,7 +22,7 @@ import java.util.concurrent.TimeUnit;
 
 
 @Mod.EventBusSubscriber()
-public class OreFactory {
+class ResourcePackageGeneration {
     private static final LoadingCache<Tile, TileWorleyNoisePointInfo> WORLEY_NOISE_TILE_POS_CACHE = CacheBuilder.newBuilder()
             .initialCapacity(10)
             .maximumSize(500)
@@ -34,26 +35,47 @@ public class OreFactory {
                         }
                     });
 
-    private static final LoadingCache<Long, OreSeedsInfo> ORE_SEEDS_CACHE = CacheBuilder.newBuilder()
+    private static final LoadingCache<Long, List<Long>> PACKAGE_SEEDS_CACHE = CacheBuilder.newBuilder()
             .initialCapacity(10)
             .maximumSize(500)
             .expireAfterAccess(5, TimeUnit.MINUTES)
             .build(
                     new CacheLoader<>() {
                         @Override
-                        public @NotNull OreSeedsInfo load(@NotNull Long areaSeed) {
+                        public @NotNull List<Long> load(@NotNull Long areaSeed) {
                             return computeOreSeed(areaSeed);
                         }
                     });
 
-    public static OreSeedsInfo getAreaOreSeeds(ServerLevel level, BlockPos blockPos) {
+    private static final LoadingCache<Long, PackageDistribution> PACKAGE_DISTRIBUTION_INFO_CACHE = CacheBuilder.newBuilder()
+            .initialCapacity(10)
+            .maximumSize(500)
+            .expireAfterAccess(5, TimeUnit.MINUTES)
+            .build(
+                    new CacheLoader<>() {
+                        @Override
+                        public @NotNull PackageDistribution load(@NotNull Long packageSeed) {
+                            return computePackageDistribution(packageSeed);
+                        }
+                    });
+
+    public static List<Long> getAreaPackageSeeds(ServerLevel level, BlockPos blockPos) {
         var areaSeed = getAreaSeedForPos(level,blockPos);
         try{
-            return ORE_SEEDS_CACHE.get(areaSeed);
+            return PACKAGE_SEEDS_CACHE.get(areaSeed);
         } catch(ExecutionException ignored){
             // I don't believe there'll be exception. it's impossible.
         }
-        return new OreSeedsInfo(null);
+        return null;
+    }
+
+    public static PackageDistribution getPackageDistribution(long packageSeed) {
+        try{
+            return PACKAGE_DISTRIBUTION_INFO_CACHE.get(packageSeed);
+        } catch(ExecutionException ignored){
+            // I don't believe there'll be exception. it's impossible.
+        }
+        return null;
     }
 
     private static long getAreaSeedForPos(ServerLevel level, BlockPos blockPos) {
@@ -89,12 +111,12 @@ public class OreFactory {
         String seed = tile.dimensionId + tile.levelSeed + tile.x + tile.y;
         long longSeed = UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8)).getMostSignificantBits() & Long.MAX_VALUE;
         var random = new Random(longSeed);
-        var x = random.nextInt(48) + tile.x * 48;
-        var y = random.nextInt(48) + tile.y * 48;
+        var x = random.nextInt(80) + tile.x * 80;
+        var y = random.nextInt(80) + tile.y * 80;
         return new TileWorleyNoisePointInfo(x,y,longSeed);
     }
 
-    private static OreSeedsInfo computeOreSeed(long areaSeed) {
+    private static List<Long> computeOreSeed(long areaSeed) {
         var random = new Random(areaSeed);
         var count =  (int) Math.floor(Math.abs(random.nextGaussian(0,3))) + 1;
         var ret = new ArrayList<Long>();
@@ -103,18 +125,33 @@ public class OreFactory {
             long oreSeed = UUID.nameUUIDFromBytes(s.getBytes(StandardCharsets.UTF_8)).getMostSignificantBits() & Long.MAX_VALUE;
             ret.add(oreSeed);
         }
-        return new OreSeedsInfo(ret);
+        return ret;
     }
 
-    public record XYChunk(int x, int y){
+    private static PackageDistribution computePackageDistribution(long packageSeed) {
+        var random = new Random(packageSeed);
+        int peak = (int) (random.nextDouble() * 112 - 64);
+        double co = 1 + random.nextDouble() * 9;
+        int spread = (int) (random.nextDouble() * 36 + 12);
+        PackageHighAltitudeDistribution highAltitudeDistribution = null;
+        if(peak+spread>=80){
+            int spread2 = (int) (random.nextDouble() * 80 + 40);
+            int dif = 80 - peak;
+            double co2 = co / spread * (spread - dif);
+            highAltitudeDistribution = new PackageHighAltitudeDistribution(co2,spread2);
+        }
+        return new PackageDistribution(co,peak,spread,highAltitudeDistribution);
+    }
+
+    record XYChunk(int x, int y){
         public static XYChunk ofPos(BlockPos blockPos) {
             return new XYChunk((int) Math.floor(blockPos.getX()/16.0), (int) Math.floor(blockPos.getY()/16.0));
         }
     };
 
-    public record Tile(int x, int y, String dimensionId, long levelSeed){
+    record Tile(int x, int y, String dimensionId, long levelSeed){
         public static Tile of(ResourceLocation dimensionId, long levelSeed, XYChunk xyChunk) {
-            return new Tile((int) Math.floor(xyChunk.x/3.0), (int) Math.floor(xyChunk.y/3.0),dimensionId.getNamespace(),levelSeed);
+            return new Tile((int) Math.floor(xyChunk.x/5.0), (int) Math.floor(xyChunk.y/5.0),dimensionId.getNamespace(),levelSeed);
         }
 
         public static List<Tile> all9(Tile tile) {
@@ -126,7 +163,40 @@ public class OreFactory {
         }
     }
 
-    public record TileWorleyNoisePointInfo(int x, int y, long tileSeed){ }
+    record TileWorleyNoisePointInfo(int x, int y, long tileSeed){ }
 
-    public record OreSeedsInfo(List<Long> oreSeeds){ }
+    public record PackageDistribution(double countCoefficient, int maxCountInHeight, int spreadRange, @Nullable PackageHighAltitudeDistribution highAltitudeDistribution){
+        public boolean isInRange(int y){
+            if(y<81)
+                return maxCountInHeight + spreadRange >= y && maxCountInHeight - spreadRange <= y;
+            else{
+                if(highAltitudeDistribution!=null){
+                    return y <= 80 + highAltitudeDistribution.spreadRange;
+                }
+                else return false;
+            }
+        }
+
+        public double getCount(int y){
+            if(y<81) {
+                int dif = Math.abs(maxCountInHeight - y);
+                return countCoefficient * (spreadRange - dif) / spreadRange;
+            }
+            else{
+                if(highAltitudeDistribution!=null){
+                    return highAltitudeDistribution.getCount(y);
+                }
+                else return 0;
+            }
+        }
+    }
+
+    public record PackageHighAltitudeDistribution(double countCoefficient, int spreadRange){
+        public double getCount(int y){
+
+        }
+    }
+
+
+
 }

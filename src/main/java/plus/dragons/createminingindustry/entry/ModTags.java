@@ -79,7 +79,25 @@ public interface ModTags<T, P extends RegistrateTagsProvider<T>> {
     }
     
     enum ModBlockTags implements ModTags<Block, RegistrateTagsProvider<Block>> {
-        ;
+        BLAZE_MINE_SILK_TOUCH(true){
+            @Override
+            public void datagen(RegistrateTagsProvider<Block> pov) {
+                //pov.tag(tag).add();
+            }
+        },
+        BLAZE_MINE_RESOURCE_PACKAGE(true){
+            @Override
+            public void datagen(RegistrateTagsProvider<Block> pov) {
+                //pov.tag(tag).add();
+            }
+        },
+        BLAZE_BURN(true){
+            @Override
+            public void datagen(RegistrateTagsProvider<Block> pov) {
+                //pov.tag(tag).add();
+            }
+        };
+
         
         final TagKey<Block> tag;
         final boolean datagen;
@@ -105,16 +123,11 @@ public interface ModTags<T, P extends RegistrateTagsProvider<T>> {
     }
     
     enum ModItemTags implements ModTags<Item, RegistrateItemTagsProvider> {
-        INK_INGREDIENT(true) {
-            @Override
-            public void datagen(RegistrateItemTagsProvider pov) {
-                pov.tag(tag).add(Items.BLACK_DYE, Items.WITHER_ROSE, Items.INK_SAC);
-            }
-        },
         UPRIGHT_ON_BELT(CREATE, true) {
             @Override
             public void datagen(RegistrateItemTagsProvider pov) {
-                pov.tag(tag).add(Items.EXPERIENCE_BOTTLE);
+                // TODO If no use then delete it.
+                //pov.tag(tag).add(Items.EXPERIENCE_BOTTLE);
             }
         };
         
@@ -143,7 +156,7 @@ public interface ModTags<T, P extends RegistrateTagsProvider<T>> {
     
     enum ModFluidTags implements ModTags<Fluid, RegistrateTagsProvider<Fluid>> {
         //No experience fluid tag here as different ratios is not acceptable
-        INK(FORGE, false);
+        BLAZE_COLLECTABLE( false);
         
         final TagKey<Fluid> tag;
         final boolean datagen;

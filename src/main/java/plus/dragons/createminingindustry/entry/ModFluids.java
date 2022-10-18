@@ -40,14 +40,6 @@ public class ModFluids {
     public static void register() {
     }
     
-    public static void handleInkEffect(LivingEvent.LivingUpdateEvent event) {
-        LivingEntity entity = event.getEntityLiving();
-        if (entity.tickCount % 20 != 0) return;
-        if (entity.isEyeInFluid(ModTags.ModFluidTags.INK.tag())) {
-            entity.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 100, 0, true, false, false));
-        }
-    }
-    
     /**
      * Removing alpha from tint prevents optifine from forcibly applying biome
      * colors to modded fluids (Makes translucent fluids disappear)
