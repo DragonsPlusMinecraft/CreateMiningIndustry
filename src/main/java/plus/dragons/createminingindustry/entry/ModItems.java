@@ -4,6 +4,9 @@ import com.simibubi.create.Create;
 import com.simibubi.create.foundation.data.CreateRegistrate;
 import com.tterrag.registrate.util.entry.ItemEntry;
 import plus.dragons.createminingindustry.MiningIndustry;
+import plus.dragons.createminingindustry.contraptions.mining.blazeminer.MineWorkPermitItem;
+import plus.dragons.createminingindustry.contraptions.mining.blazeminer.product.BlazeFluidHolderItem;
+import plus.dragons.createminingindustry.contraptions.mining.blazeminer.product.BlazeResourcePackageItem;
 import plus.dragons.createminingindustry.contraptions.mining.drill.PortableDrillItem;
 import plus.dragons.createminingindustry.event.FillCreateItemGroupEvent;
 
@@ -15,13 +18,16 @@ public class ModItems {
             .properties(prop -> prop.stacksTo(16))
             .register();
 
-    /*public static final ItemEntry<EnchantingGuideItem> ENCHANTING_GUIDE = REGISTRATE.item("enchanting_guide", EnchantingGuideItem::new)
+    public static final ItemEntry<MineWorkPermitItem> MINE_WORK_PERMIT = REGISTRATE.item("mine_work_permit", MineWorkPermitItem::new)
             .properties(prop -> prop.stacksTo(1))
             .register();
 
-    public static final ItemEntry<HyperExpBottleItem> HYPER_EXP_BOTTLE = REGISTRATE.item("bottled_hyper_experience", HyperExpBottleItem::new)
-            .lang("Bottle O' Hyper Enchanting")
-            .register();*/
+    public static final ItemEntry<BlazeFluidHolderItem> FLUID_HOLDER = REGISTRATE.item("blaze_fluid_holder", BlazeFluidHolderItem::new)
+            .properties(prop -> prop.stacksTo(16))
+            .register();
+
+    public static final ItemEntry<BlazeResourcePackageItem> RESOURCE_PACKAGE = REGISTRATE.item("blaze_resource_package", BlazeResourcePackageItem::new)
+            .register();
 
     public static void fillCreateItemGroup(FillCreateItemGroupEvent event) {
         if (event.getItemGroup() == Create.BASE_CREATIVE_TAB) {
