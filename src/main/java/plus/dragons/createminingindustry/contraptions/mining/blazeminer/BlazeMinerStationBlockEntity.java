@@ -29,6 +29,7 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
     BlockPos commandCenterPos;
     Phase phase;
     LazyOptional<IItemHandlerModifiable> handler = LazyOptional.of(() -> stationInv);
+    int itemCollected;
 
 
     public BlazeMinerStationBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
@@ -36,6 +37,7 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
         blazeInv = new BlazeMinerInventory();
         stationInv = new SmartInventory(27,this);
         phase = Phase.IDLE;
+        itemCollected = 0;
     }
 
     @Override
@@ -47,32 +49,53 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
 
         if(phase == Phase.IDLE){
             // Communicate with Command Center to apply for job.
-
-            return;
+            requestWork();
         }
-        if(phase == Phase.COLLECTING_TASK){
+        else if(phase == Phase.SEARCH_LOCATION){
             // Make sure everything is set, blazeInv is emptied.
-
-            return;
+            searchingArea();
         }
-        if(phase == Phase.SEARCH_LOCATION){
-            // Make sure everything is set, blazeInv is emptied.
-
-            return;
+        else if(phase == Phase.BLINK_TO_LOCATION){
+            blinkToArea();
         }
-        if(phase == Phase.BLINK_TO_LOCATION){
-
-            return;
+        else if(phase == Phase.MINE){
+            mine();
         }
-        if(phase == Phase.MINE){
-
-            return;
+        else if(phase == Phase.TRANSPORT_ITEM){
+            transportItem();
         }
-        if(phase == Phase.TRANSPORT_ITEM){
+    }
 
-            return;
+    private void requestWork() {
+        // TODO temp solution for test only
+        // Search for Command Center below within 10 blocks
+        MineCommandCenterBlockEntity cmd = null;
+        for(int i=1;i<=10;i++){
+            if(level.getBlockEntity(getBlockPos().below(i)) instanceof MineCommandCenterBlockEntity mineCommandCenterBlockEntity){
+                cmd = mineCommandCenterBlockEntity;
+                break;
+            }
         }
-        // Detect Command Center
+        if(cmd!=null){
+            miningTask = cmd.nextTask();
+            phase = Phase.SEARCH_LOCATION;
+        }
+    }
+
+    private void searchingArea() {
+
+    }
+
+    private void blinkToArea() {
+
+    }
+
+    private void mine() {
+
+    }
+
+    private void transportItem() {
+
     }
 
     @Override
@@ -115,7 +138,6 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
 
     enum Phase{
         IDLE,
-        COLLECTING_TASK,
         SEARCH_LOCATION,
         BLINK_TO_LOCATION,
         MINE,

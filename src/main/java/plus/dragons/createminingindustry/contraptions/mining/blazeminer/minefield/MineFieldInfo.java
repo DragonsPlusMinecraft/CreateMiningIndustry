@@ -15,11 +15,11 @@ import java.util.Set;
 // max fleid area 1s 5 x 5 unit;
 public class MineFieldInfo implements INBTSerializable<CompoundTag> {
     static int MAX_HEIGHT = -64, MIN_HEIGHT = 319, VERTICAL_SLICE = 16;
-    public ResourceLocation dimension;
-    public BlockPos originalPos;
-    public int xWidth, zWidth;
-    public MineTaskArea distributied = new MineTaskArea(0,0,0);
-    public Set<MineTaskArea> extraAvailable = new HashSet<>();
+    ResourceLocation dimension;
+    BlockPos originalPos;
+    int xWidth, zWidth;
+    MineTaskArea distributied = new MineTaskArea(0,0,0);
+    Set<MineTaskArea> extraAvailable = new HashSet<>();
 
     public MineFieldInfo(ResourceLocation dimension, BlockPos originalPos, int xWidth, int zWidth) {
         this.dimension = dimension;
@@ -28,7 +28,7 @@ public class MineFieldInfo implements INBTSerializable<CompoundTag> {
         this.zWidth = zWidth;
     }
 
-    public MineTaskArea nextTaskArea(MineTaskArea mineTaskArea){
+    public MineTaskArea nextTaskArea(){
         if(!extraAvailable.isEmpty()){
             var ret = extraAvailable.iterator().next();
             extraAvailable.remove(ret);
@@ -94,7 +94,17 @@ public class MineFieldInfo implements INBTSerializable<CompoundTag> {
             var z1 = origin.getZ() + z * 16;
             var x2 = (x + 1) * 16 > inField.xWidth? origin.getX() + inField.xWidth - 1: x1 + 15;
             var z2 = (z + 1) * 16 > inField.zWidth? origin.getZ() + inField.zWidth - 1: z1 + 15;
-            return new AABB(x1,MIN_HEIGHT,z1,x2,MIN_HEIGHT,z2);
+            var y1 = MAX_HEIGHT -  y * 16;
+            var y2 = y1 - 16;
+            return new AABB(x1,y1,z1,x2,y2,z2);
+        }
+
+        public BlockPos.MutableBlockPos startPoint(MineFieldInfo inField){
+            var origin = inField.originalPos;
+            var x1 = origin.getX() + x * 16;
+            var z1 = origin.getZ() + z * 16;
+            var y1 = MAX_HEIGHT -  y * 16;
+            return new BlockPos.MutableBlockPos(x1,y1,z1);
         }
 
 
