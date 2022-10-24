@@ -88,12 +88,12 @@ public class MineFieldInfo implements INBTSerializable<CompoundTag> {
 
     public record MineTaskArea(int x, int y, int z){
         // order -> x, z, y
-        public AABB toAABB(MineFieldInfo mineFleid){
-            var origin = mineFleid.originalPos;
+        public AABB toAABB(MineFieldInfo inField){
+            var origin = inField.originalPos;
             var x1 = origin.getX() + x * 16;
             var z1 = origin.getZ() + z * 16;
-            var x2 = (x + 1) * 16 > mineFleid.xWidth? origin.getX() + mineFleid.xWidth - 1: x1 + 15;
-            var z2 = (z + 1) * 16 > mineFleid.zWidth? origin.getZ() + mineFleid.zWidth - 1: z1 + 15;
+            var x2 = (x + 1) * 16 > inField.xWidth? origin.getX() + inField.xWidth - 1: x1 + 15;
+            var z2 = (z + 1) * 16 > inField.zWidth? origin.getZ() + inField.zWidth - 1: z1 + 15;
             return new AABB(x1,MIN_HEIGHT,z1,x2,MIN_HEIGHT,z2);
         }
 

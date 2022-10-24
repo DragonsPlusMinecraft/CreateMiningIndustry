@@ -50,7 +50,12 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
 
             return;
         }
-        if(phase == Phase.PREPARE){
+        if(phase == Phase.COLLECTING_TASK){
+            // Make sure everything is set, blazeInv is emptied.
+
+            return;
+        }
+        if(phase == Phase.SEARCH_LOCATION){
             // Make sure everything is set, blazeInv is emptied.
 
             return;
@@ -110,7 +115,8 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
 
     enum Phase{
         IDLE,
-        PREPARE,
+        COLLECTING_TASK,
+        SEARCH_LOCATION,
         BLINK_TO_LOCATION,
         MINE,
         TRANSPORT_ITEM
