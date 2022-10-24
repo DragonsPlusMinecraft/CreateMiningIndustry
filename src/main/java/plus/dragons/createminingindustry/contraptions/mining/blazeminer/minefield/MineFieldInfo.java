@@ -4,7 +4,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtUtils;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.phys.AABB;
 import net.minecraftforge.common.util.INBTSerializable;
 
@@ -14,15 +13,13 @@ import java.util.Set;
 // 16 x 16 block is area of a single mineTask, and height is 16;
 // max fleid area 1s 5 x 5 unit;
 public class MineFieldInfo implements INBTSerializable<CompoundTag> {
-    static int MAX_HEIGHT = -64, MIN_HEIGHT = 319, VERTICAL_SLICE = 16;
-    ResourceLocation dimension;
+    static int Min_HEIGHT = -64, MAX_HEIGHT = 319, VERTICAL_SLICE = 16;
     BlockPos originalPos;
     int xWidth, zWidth;
     MineTaskArea distributied = new MineTaskArea(0,0,0);
     Set<MineTaskArea> extraAvailable = new HashSet<>();
 
-    public MineFieldInfo(ResourceLocation dimension, BlockPos originalPos, int xWidth, int zWidth) {
-        this.dimension = dimension;
+    public MineFieldInfo(BlockPos originalPos, int xWidth, int zWidth) {
         this.originalPos = originalPos;
         this.xWidth = xWidth;
         this.zWidth = zWidth;
@@ -53,7 +50,6 @@ public class MineFieldInfo implements INBTSerializable<CompoundTag> {
     @Override
     public CompoundTag serializeNBT() {
         var ret = new CompoundTag();
-        ret.putString("dimension", dimension.toString());
         ret.put("original_position",NbtUtils.writeBlockPos(originalPos));
         ret.putInt("",xWidth);
         ret.putInt("z_width",zWidth);
@@ -72,7 +68,6 @@ public class MineFieldInfo implements INBTSerializable<CompoundTag> {
 
     @Override
     public void deserializeNBT(CompoundTag nbt) {
-        dimension = new ResourceLocation(nbt.getString("dimension"));
         originalPos = NbtUtils.readBlockPos((CompoundTag) nbt.get("original_position"));
         xWidth = nbt.getInt("x_width");
         zWidth = nbt.getInt("z_width");
@@ -95,7 +90,7 @@ public class MineFieldInfo implements INBTSerializable<CompoundTag> {
             var x2 = (x + 1) * 16 > inField.xWidth? origin.getX() + inField.xWidth - 1: x1 + 15;
             var z2 = (z + 1) * 16 > inField.zWidth? origin.getZ() + inField.zWidth - 1: z1 + 15;
             var y1 = MAX_HEIGHT -  y * 16;
-            var y2 = y1 - 16;
+            var y2 = y1 - 15;
             return new AABB(x1,y1,z1,x2,y2,z2);
         }
 

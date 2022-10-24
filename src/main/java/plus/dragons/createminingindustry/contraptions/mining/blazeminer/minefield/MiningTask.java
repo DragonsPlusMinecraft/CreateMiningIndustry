@@ -28,11 +28,20 @@ public class MiningTask implements INBTSerializable<CompoundTag> {
                 if(targetPos.getY() <= dutyAABB.minY){
                     done = true;
                 }
-                else targetPos.move(0,-1,0);
+                else {
+                    targetPos.move(0,-1,0);
+                    targetPos.setX((int) dutyAABB.minX);
+                    targetPos.setZ((int) dutyAABB.minZ);
+                }
             }
-            else targetPos.move(0,0,1);
+            else {
+                targetPos.move(0,0,1);
+                targetPos.setX((int) dutyAABB.minX);
+            }
         }
-        else targetPos.move(1,0,0);
+        else {
+            targetPos.move(1,0,0);
+        }
     }
 
     public boolean done(){

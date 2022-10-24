@@ -17,7 +17,7 @@ public class MineCommandCenterBlockEntity extends SmartTileEntity implements IHa
     MineFieldInfo mineFieldInfo;
     public MineCommandCenterBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
         super(type, pos, state);
-        mineFieldInfo = new MineFieldInfo(level.dimension().getRegistryName(),pos,48,48);
+        mineFieldInfo = new MineFieldInfo(pos,48,48);
     }
 
     @Override
@@ -44,7 +44,7 @@ public class MineCommandCenterBlockEntity extends SmartTileEntity implements IHa
     @Override
     protected void read(CompoundTag compoundTag, boolean clientPacket) {
         super.read(compoundTag, clientPacket);
-        mineFieldInfo.deserializeNBT(compoundTag);
+        mineFieldInfo.deserializeNBT((CompoundTag) compoundTag.get("mine_field"));
         // TODO
     }
 }
