@@ -1,4 +1,4 @@
-package plus.dragons.createminingindustry.contraptions.mining.blazeminer.minefield;
+package plus.dragons.createminingindustry.contraptions.mining.blazeminer;
 
 import com.simibubi.create.foundation.utility.NBTHelper;
 import net.minecraft.core.BlockPos;
@@ -8,14 +8,14 @@ import net.minecraft.nbt.NbtUtils;
 import net.minecraft.world.phys.AABB;
 import net.minecraftforge.common.util.INBTSerializable;
 
-public class MiningTask implements INBTSerializable<CompoundTag> {
+public class MineFieldSubTask implements INBTSerializable<CompoundTag> {
 
     AABB dutyAABB;
-    MineFieldInfo.MineTaskArea cachedArea;
+    MineFieldTask.SubTaskArea cachedArea;
     BlockPos.MutableBlockPos targetPos;
     Boolean done;
 
-    public MiningTask(AABB dutyAABB, MineFieldInfo.MineTaskArea cachedArea, BlockPos.MutableBlockPos targetPos) {
+    public MineFieldSubTask(AABB dutyAABB, MineFieldTask.SubTaskArea cachedArea, BlockPos.MutableBlockPos targetPos) {
         this.cachedArea = cachedArea;
         this.targetPos = targetPos;
         this.dutyAABB = dutyAABB;
@@ -62,10 +62,10 @@ public class MiningTask implements INBTSerializable<CompoundTag> {
         this.dutyAABB = NBTHelper.readAABB((ListTag) nbt.get("duty"));
         var pos = NbtUtils.readBlockPos((CompoundTag) nbt.get("target"));
         this.targetPos = new BlockPos.MutableBlockPos(pos.getX(),pos.getY(),pos.getZ());
-        this.cachedArea = MineFieldInfo.MineTaskArea.deserializeNBT((CompoundTag) nbt.get("cached_area"));
+        this.cachedArea = MineFieldTask.SubTaskArea.deserializeNBT((CompoundTag) nbt.get("cached_area"));
     }
 
-    public MineFieldInfo.MineTaskArea getCachedArea() {
+    public MineFieldTask.SubTaskArea getCachedArea() {
         return cachedArea;
     }
 

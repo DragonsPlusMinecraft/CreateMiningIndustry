@@ -5,19 +5,19 @@ import com.simibubi.create.foundation.tileEntity.SmartTileEntity;
 import com.simibubi.create.foundation.tileEntity.TileEntityBehaviour;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import plus.dragons.createminingindustry.contraptions.mining.blazeminer.minefield.MineFieldInfo;
-import plus.dragons.createminingindustry.contraptions.mining.blazeminer.minefield.MiningTask;
+import plus.dragons.createminingindustry.foundation.utility.CmiLang;
 
+import javax.annotation.Nullable;
 import java.util.List;
 
 public class MineCommandCenterBlockEntity extends SmartTileEntity implements IHaveGoggleInformation {
 
-    MineFieldInfo mineFieldInfo;
+    MineFieldTask mineFieldTask = null;
     public MineCommandCenterBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
         super(type, pos, state);
-        mineFieldInfo = new MineFieldInfo(pos,48,48);
     }
 
     @Override
@@ -25,26 +25,48 @@ public class MineCommandCenterBlockEntity extends SmartTileEntity implements IHa
 
     }
 
-    public MiningTask nextTask(){
-        var temp = mineFieldInfo.nextTaskArea();
-        return new MiningTask(temp.toAABB(mineFieldInfo),temp,temp.startPoint(mineFieldInfo));
+    /**
+     * If mineFieldTask is null or mineFieldTask is done, return null;
+     */
+    @Nullable
+    public MineFieldSubTask nextTask(){
+        var temp = mineFieldTask.nextTaskArea();
+        return temp.toSubTask(mineFieldTask);
     }
 
-    public void returnTask(MiningTask task){
-        mineFieldInfo.returnTaskArea(task.getCachedArea());
+    @Nullable
+    public MineFieldTask setupMineField(@Nullable MineFieldTask mineFieldTask){
+        var ret =  this.mineFieldTask;
+        this.mineFieldTask = mineFieldTask;
+        return ret;
+    }
+
+    public void returnTask(MineFieldSubTask task){
+        mineFieldTask.returnTaskArea(task.getCachedArea());
     }
 
     @Override
     public void write(CompoundTag compoundTag, boolean clientPacket) {
         super.write(compoundTag, clientPacket);
-        compoundTag.put("mine_field",mineFieldInfo.serializeNBT());
-        // TODO
+        if(mineFieldTask!=null)
+            compoundTag.put("mine_field", mineFieldTask.serializeNBT());
     }
 
     @Override
     protected void read(CompoundTag compoundTag, boolean clientPacket) {
         super.read(compoundTag, clientPacket);
-        mineFieldInfo.deserializeNBT((CompoundTag) compoundTag.get("mine_field"));
-        // TODO
+        var mineField = compoundTag.get("mine_field");
+        if(mineField!=null)
+            mineFieldTask.deserializeNBT((CompoundTag) mineField);
+    }
+
+    @Override
+    public boolean addToGoggleTooltip(List<Component> tooltip, boolean isPlayerSneaking) {
+        // TODO show mine field config and running status
+        if(mineFieldTask!=null){
+            tooltip.add(CmiLang.text(mineFieldTask.toString()).component());
+            return true;
+        } else
+            return false;
     }
 }
