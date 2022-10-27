@@ -4,7 +4,10 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
@@ -70,14 +73,14 @@ public class MineLocatorBarItem extends Item {
                 return InteractionResult.FAIL;
             }
         } else {
-            if(tag.contains("1st_location")){
+            if(tag.contains("1st_location") && !tag.contains("2nd_location")){
                 var pos1 = NbtUtils.readBlockPos((CompoundTag) tag.get("1st_location"));
                 // Verify area. Must not be greater than max size.
                 if(Math.abs(pos1.getX()-pos.getX())>80 || Math.abs(pos1.getZ()-pos.getZ())>80){
                     // TODO Notify player about max size.
                     return InteractionResult.FAIL;
                 } else {
-                    tag.put("2st_location", NbtUtils.writeBlockPos(pos));
+                    tag.put("2nd_location", NbtUtils.writeBlockPos(pos));
                 }
             } else if(tag.contains("2nd_location")){
                 tag.remove("2nd_location");
@@ -87,6 +90,16 @@ public class MineLocatorBarItem extends Item {
             }
             return InteractionResult.sidedSuccess(level.isClientSide());
         }
+    }
+
+    @Override
+    public InteractionResultHolder<ItemStack> use(Level pLevel, Player pPlayer, InteractionHand pUsedHand) {
+        if(pPlayer.isShiftKeyDown()){
+            var tag = pPlayer.getItemInHand(pUsedHand).getOrCreateTag();
+            tag.remove("1st_location");
+            tag.remove("2nd_location");
+        }
+        return super.use(pLevel, pPlayer, pUsedHand);
     }
 
     @Override

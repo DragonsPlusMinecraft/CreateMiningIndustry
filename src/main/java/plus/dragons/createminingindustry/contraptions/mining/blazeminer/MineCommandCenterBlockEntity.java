@@ -31,18 +31,30 @@ public class MineCommandCenterBlockEntity extends SmartTileEntity implements IHa
     @Nullable
     public MineFieldSubTask nextTask(){
         var temp = mineFieldTask.nextTaskArea();
+        if(temp==null){
+            notifyUpdate();
+            return null;
+        }
         return temp.toSubTask(mineFieldTask);
+    }
+
+    public boolean consumeToolkit(){
+        //TODO
+        notifyUpdate();
+        return true;
     }
 
     @Nullable
     public MineFieldTask setupMineField(@Nullable MineFieldTask mineFieldTask){
         var ret =  this.mineFieldTask;
         this.mineFieldTask = mineFieldTask;
+        notifyUpdate();
         return ret;
     }
 
     public void returnTask(MineFieldSubTask task){
         mineFieldTask.returnTaskArea(task.getCachedArea());
+        notifyUpdate();
     }
 
     @Override
@@ -56,8 +68,9 @@ public class MineCommandCenterBlockEntity extends SmartTileEntity implements IHa
     protected void read(CompoundTag compoundTag, boolean clientPacket) {
         super.read(compoundTag, clientPacket);
         var mineField = compoundTag.get("mine_field");
-        if(mineField!=null)
-            mineFieldTask.deserializeNBT((CompoundTag) mineField);
+        if(mineField!=null){
+            mineFieldTask = MineFieldTask.fromNBT((CompoundTag) mineField);
+        }
     }
 
     @Override

@@ -4,14 +4,14 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.world.phys.AABB;
-import net.minecraftforge.common.util.INBTSerializable;
 
+import javax.annotation.Nullable;
 import java.util.HashSet;
 import java.util.Set;
 
 // 16 x 16 block is area of a single mineTask, and height is 16;
 // max fleid area 1s 5 x 5 unit;
-public class MineFieldTask implements INBTSerializable<CompoundTag> {
+public class MineFieldTask {
     static final int MAX_HEIGHT = 319, VERTICAL_SLICE = 24;
     public int x,z,xWidth, zWidth;
     SubTaskArea distributed = new SubTaskArea(0,0,0);
@@ -25,7 +25,11 @@ public class MineFieldTask implements INBTSerializable<CompoundTag> {
         this.zWidth = zWidth;
     }
 
+    private MineFieldTask() {}
+
+    @Nullable
     public SubTaskArea nextTaskArea(){
+        if(done) return null;
         if(!extraAvailable.isEmpty()){
             var ret = extraAvailable.iterator().next();
             extraAvailable.remove(ret);
@@ -33,8 +37,10 @@ public class MineFieldTask implements INBTSerializable<CompoundTag> {
         }
         if((distributed.x+1)*16>=xWidth){
             if((distributed.z+1)*16>=zWidth){
-                if(distributed.y==VERTICAL_SLICE-1)
+                if(distributed.y==VERTICAL_SLICE-1){
                     done = true;
+                    return null;
+                }
                 else distributed = new SubTaskArea(0, distributed.y+1,0);
             }
             else distributed = new SubTaskArea(0, distributed.y, distributed.z+1);
@@ -49,9 +55,9 @@ public class MineFieldTask implements INBTSerializable<CompoundTag> {
 
     public void returnTaskArea(SubTaskArea subTaskArea){
         extraAvailable.add(subTaskArea);
+        done = false;
     }
 
-    @Override
     public CompoundTag serializeNBT() {
         var ret = new CompoundTag();
         ret.putInt("x",x);
@@ -71,21 +77,22 @@ public class MineFieldTask implements INBTSerializable<CompoundTag> {
         return ret;
     }
 
-    @Override
-    public void deserializeNBT(CompoundTag nbt) {
-        done = nbt.getBoolean("done");
-        x = nbt.getInt("x");
-        z = nbt.getInt("z");
-        xWidth = nbt.getInt("x_width");
-        zWidth = nbt.getInt("z_width");
-        distributed = SubTaskArea.deserializeNBT((CompoundTag) nbt.get("distributed"));
+    public static MineFieldTask fromNBT(CompoundTag nbt) {
+        var ret = new MineFieldTask();
+        ret.done = nbt.getBoolean("done");
+        ret.x = nbt.getInt("x");
+        ret.z = nbt.getInt("z");
+        ret.xWidth = nbt.getInt("x_width");
+        ret.zWidth = nbt.getInt("z_width");
+        ret.distributed = SubTaskArea.deserializeNBT((CompoundTag) nbt.get("distributed"));
         if(nbt.contains("has_extra")){
             var size = nbt.getInt("extra_size");
             ListTag list = (ListTag) nbt.get("extra_list");
             for(int i=0;i<size;i++){
-                extraAvailable.add(SubTaskArea.deserializeNBT((CompoundTag) list.get(i)));
+                ret.extraAvailable.add(SubTaskArea.deserializeNBT((CompoundTag) list.get(i)));
             }
         }
+        return ret;
     }
 
     @Override
@@ -102,8 +109,7 @@ public class MineFieldTask implements INBTSerializable<CompoundTag> {
     public record SubTaskArea(int x, int y, int z){
 
         public MineFieldSubTask toSubTask(MineFieldTask inField){
-            var temp = inField.nextTaskArea();
-            return new MineFieldSubTask(temp.toAABB(inField),temp,temp.startPoint(inField));
+            return new MineFieldSubTask(this.toAABB(inField),this,this.startPoint(inField));
         }
 
         private BlockPos.MutableBlockPos startPoint(MineFieldTask inField){

@@ -6,9 +6,8 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.world.phys.AABB;
-import net.minecraftforge.common.util.INBTSerializable;
 
-public class MineFieldSubTask implements INBTSerializable<CompoundTag> {
+public class MineFieldSubTask {
 
     AABB dutyAABB;
     MineFieldTask.SubTaskArea cachedArea;
@@ -21,6 +20,8 @@ public class MineFieldSubTask implements INBTSerializable<CompoundTag> {
         this.dutyAABB = dutyAABB;
         this.done = false;
     }
+
+    private MineFieldSubTask() {}
 
     public void nextPos(){
         if(targetPos.getX() >= dutyAABB.maxX){
@@ -48,7 +49,6 @@ public class MineFieldSubTask implements INBTSerializable<CompoundTag> {
         return done;
     }
 
-    @Override
     public CompoundTag serializeNBT() {
         var tag = new CompoundTag();
         tag.put("duty",NBTHelper.writeAABB(dutyAABB));
@@ -57,12 +57,13 @@ public class MineFieldSubTask implements INBTSerializable<CompoundTag> {
         return tag;
     }
 
-    @Override
-    public void deserializeNBT(CompoundTag nbt) {
-        this.dutyAABB = NBTHelper.readAABB((ListTag) nbt.get("duty"));
+    public static MineFieldSubTask fromNBT(CompoundTag nbt) {
+        var ret = new MineFieldSubTask();
+        ret.dutyAABB = NBTHelper.readAABB((ListTag) nbt.get("duty"));
         var pos = NbtUtils.readBlockPos((CompoundTag) nbt.get("target"));
-        this.targetPos = new BlockPos.MutableBlockPos(pos.getX(),pos.getY(),pos.getZ());
-        this.cachedArea = MineFieldTask.SubTaskArea.deserializeNBT((CompoundTag) nbt.get("cached_area"));
+        ret.targetPos = new BlockPos.MutableBlockPos(pos.getX(),pos.getY(),pos.getZ());
+        ret.cachedArea = MineFieldTask.SubTaskArea.deserializeNBT((CompoundTag) nbt.get("cached_area"));
+        return ret;
     }
 
     public MineFieldTask.SubTaskArea getCachedArea() {
@@ -71,5 +72,13 @@ public class MineFieldSubTask implements INBTSerializable<CompoundTag> {
 
     public BlockPos getTargetPos() {
         return targetPos.immutable();
+    }
+
+    @Override
+    public String toString() {
+        return "MineFieldSubTask{" +
+                "dutyAABB=" + dutyAABB +
+                ", cachedArea=" + cachedArea +
+                '}';
     }
 }
