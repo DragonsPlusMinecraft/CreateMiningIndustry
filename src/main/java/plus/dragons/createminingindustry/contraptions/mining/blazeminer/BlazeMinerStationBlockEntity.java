@@ -62,7 +62,7 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
     public BlazeMinerStationBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
         super(type, pos, state);
         blazeInv = new BlazeMinerInventory();
-        stationInv = new SmartInventory(27,this);
+        stationInv = new SmartInventory(27,this).forbidInsertion();
         phase = Phase.SEARCH_COMMAND_CENTER;
         itemCollected = 0;
         mineFieldSubTask = null;
@@ -156,7 +156,7 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
         if(!level.isClientSide()){
             var blockEntity = level.getBlockEntity(commandCenterPos);
             if(blockEntity instanceof MineCommandCenterBlockEntity mineCommandCenterBlockEntity){
-                if(mineCommandCenterBlockEntity.mineFieldTask.done()){
+                if(mineCommandCenterBlockEntity.mineFieldTask == null || mineCommandCenterBlockEntity.mineFieldTask.done()){
                     idleTime = 200;
                     notifyUpdate();
                 } else {
@@ -179,7 +179,7 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
         if(!level.isClientSide()){
             var blockEntity = level.getBlockEntity(commandCenterPos);
             if(blockEntity instanceof MineCommandCenterBlockEntity mineCommandCenterBlockEntity){
-                if(mineCommandCenterBlockEntity.mineFieldTask.done()){
+                if(mineCommandCenterBlockEntity.mineFieldTask == null ||mineCommandCenterBlockEntity.mineFieldTask.done()){
                     idleTime = 200;
                     notifyUpdate();
                 } else {
@@ -301,16 +301,32 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
 
     private void transferItem() {
         if(!level.isClientSide()){
-            var allItems = blazeInv.removeAllItems();
-            allItems.addAll(blazeInv.backupInv.removeAllItems());
-            for(var item: allItems){
-                // TODO should saving into station inv
-                // Temporary solution for test only
-                ItemEntity itementity = new ItemEntity(level, getBlockPos().getX(), getBlockPos().getY()+1, getBlockPos().getZ(), item);
-                itementity.setDeltaMovement(0.5,0.5,0.5);
-                level.addFreshEntity(itementity);
+            for(int i=0;i<blazeInv.backupInv.getContainerSize();i++){
+                var item = blazeInv.backupInv.getItem(i);
+                if(!item.isEmpty()){
+                    item = addToStationInventory(item);
+                    blazeInv.backupInv.setItem(i,item);
+                    if(!item.isEmpty()){
+                        idleTime = 200;
+                    }
+                    notifyUpdate();
+                    return;
+                }
+            }
+            for(int i=0;i<blazeInv.getContainerSize();i++){
+                var item = blazeInv.getItem(i);
+                if(!item.isEmpty()){
+                    item = addToStationInventory(item);
+                    blazeInv.setItem(i,item);
+                    if(!item.isEmpty()){
+                        idleTime = 200;
+                    }
+                    notifyUpdate();
+                    return;
+                }
             }
             if(itemCollected>3456){
+                itemCollected = 0;
                 if (!mineFieldSubTask.done()){
                     var blockEntity = level.getBlockEntity(commandCenterPos);
                     if(blockEntity instanceof MineCommandCenterBlockEntity mineCommandCenterBlockEntity){
@@ -322,7 +338,7 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
                         setPhase(Phase.SEARCH_COMMAND_CENTER);
                     }
                 }
-                itemCollected = 0;
+
                 return;
             }
             setPhase(Phase.SEARCH_MINEABLE);
@@ -340,6 +356,17 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
             blazeInv.backupInv.addItem(left);
     }
 
+    private ItemStack addToStationInventory(ItemStack itemStack){
+        stationInv.allowInsertion();
+        for(int i=0;i<stationInv.getContainerSize();i++){
+            itemStack = stationInv.insertItem(i,itemStack,false);
+            if(itemStack.isEmpty()) break;
+        }
+        stationInv.forbidInsertion();
+        notifyUpdate();
+        return itemStack;
+    }
+
     private void removeNearbyLiquid(Level pLevel, BlockPos pPos) {
         Queue<BlockPos> queue = Lists.newLinkedList();
         queue.add(pPos);
@@ -348,7 +375,7 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
         while(!queue.isEmpty()) {
             BlockPos blockpos = queue.poll();
 
-            for(Direction direction : Direction.values()) {
+            for(Direction direction : Direction.Axis.Y.getPlane().stream().toList()) {
                 BlockPos blockpos1 = blockpos.relative(direction);
                 FluidState fluidstate = pLevel.getFluidState(blockpos1);
                 if (!fluidstate.isSource() || !fluidstate.is(CmiTags.CmiFluidTags.BLAZE_COLLECTABLE.tag())) {
@@ -403,7 +430,7 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
     @Override
     @NotNull
     public <T> LazyOptional<T> getCapability(@NotNull Capability<T> capability, @Nullable Direction side) {
-        if (side != null && side != Direction.UP && isItemHandlerCap(capability))
+        if (side != Direction.UP && isItemHandlerCap(capability))
             return handler.cast();
         return super.getCapability(capability, side);
     }

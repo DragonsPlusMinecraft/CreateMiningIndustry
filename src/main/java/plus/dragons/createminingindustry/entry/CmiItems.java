@@ -3,6 +3,7 @@ package plus.dragons.createminingindustry.entry;
 import com.simibubi.create.Create;
 import com.simibubi.create.foundation.data.CreateRegistrate;
 import com.tterrag.registrate.util.entry.ItemEntry;
+import net.minecraft.world.item.Item;
 import plus.dragons.createminingindustry.MiningIndustry;
 import plus.dragons.createminingindustry.contraptions.mining.blazeminer.MineLocatorBarItem;
 import plus.dragons.createminingindustry.contraptions.mining.blazeminer.product.BlazeFluidHolderItem;
@@ -19,6 +20,10 @@ public class CmiItems {
             .register();
 
     public static final ItemEntry<MineLocatorBarItem> MINE_LOCATOR_BAR = REGISTRATE.item("mine_locator_bar", MineLocatorBarItem::new)
+            .properties(prop -> prop.stacksTo(1))
+            .register();
+
+    public static final ItemEntry<Item> BLAZE_MINER_TOOLKIT = REGISTRATE.item("blaze_miner_toolkit", Item::new)
             .properties(prop -> prop.stacksTo(1))
             .register();
 
