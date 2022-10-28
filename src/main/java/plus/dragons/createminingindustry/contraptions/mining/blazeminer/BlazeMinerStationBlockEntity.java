@@ -14,7 +14,6 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.SimpleContainer;
-import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.Enchantment;
@@ -42,12 +41,14 @@ import java.util.Queue;
 public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHaveGoggleInformation {
 
     static ItemStack SILK_TOUCH_TOOL;
+    static Direction[] DIRECTIONS;
 
     static {
         SILK_TOUCH_TOOL = Items.NETHERITE_PICKAXE.getDefaultInstance();
         Map<Enchantment,Integer> enchantment = new HashMap<>();
         enchantment.put(Enchantments.SILK_TOUCH,1);
         EnchantmentHelper.setEnchantments(enchantment,SILK_TOUCH_TOOL);
+        DIRECTIONS = new Direction[]{Direction.EAST, Direction.WEST, Direction.NORTH, Direction.SOUTH};
     }
     MineFieldSubTask mineFieldSubTask;
     BlazeMinerInventory blazeInv;
@@ -83,44 +84,28 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
             return;
         }
         if(phase == Phase.SEARCH_COMMAND_CENTER){
-            if(!level.isClientSide()){
-                searchCommandCenter();
-            }
+            searchCommandCenter();
         }
         else if(phase == Phase.REQUEST_JOB){
-            if(!level.isClientSide()){
-                requestJob();
-            }
+            requestJob();
         }
         else if(phase == Phase.REQUEST_TASK){
-            if(!level.isClientSide()){
-                requestTask();
-            }
+            requestTask();
         }
         else if(phase == Phase.SEARCH_MINEABLE){
-            if(!level.isClientSide()){
-                searchMineable();
-            }
+            searchMineable();
         }
         else if(phase == Phase.BLINK_TO_MINEABLE){
-            if(!level.isClientSide()){
-                blinkToMineable();
-            }
+            blinkToMineable();
         }
         else if(phase == Phase.MINE){
-            if(!level.isClientSide()){
-                mine();
-            }
+            mine();
         }
         else if(phase == Phase.BLINK_TO_STATION){
-            if(!level.isClientSide()){
-                blinkToStation();
-            }
+            blinkToStation();
         }
         else if(phase == Phase.TRANSFER_ITEM){
-            if(!level.isClientSide()){
-                transferItem();
-            }
+            transferItem();
         }
     }
 
@@ -288,6 +273,12 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
                 setPhase(Phase.BLINK_TO_STATION);
                 return;
             }
+            mineFieldSubTask.nextPos();
+            if(mineFieldSubTask.done()){
+                mineFieldSubTask = null;
+                setPhase(Phase.BLINK_TO_STATION);
+                return;
+            }
             setPhase(Phase.SEARCH_MINEABLE);
         }
     }
@@ -325,6 +316,15 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
                     return;
                 }
             }
+            if(mineFieldSubTask==null){
+                if(itemCollected>3456){
+                    itemCollected = 0;
+                    setPhase(Phase.REQUEST_JOB);
+                } else {
+                    setPhase(Phase.REQUEST_TASK);
+                }
+                return;
+            }
             if(itemCollected>3456){
                 itemCollected = 0;
                 if (!mineFieldSubTask.done()){
@@ -338,7 +338,6 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
                         setPhase(Phase.SEARCH_COMMAND_CENTER);
                     }
                 }
-
                 return;
             }
             setPhase(Phase.SEARCH_MINEABLE);
@@ -375,7 +374,7 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
         while(!queue.isEmpty()) {
             BlockPos blockpos = queue.poll();
 
-            for(Direction direction : Direction.Axis.Y.getPlane().stream().toList()) {
+            for(Direction direction : DIRECTIONS) {
                 BlockPos blockpos1 = blockpos.relative(direction);
                 FluidState fluidstate = pLevel.getFluidState(blockpos1);
                 if (!fluidstate.isSource() || !fluidstate.is(CmiTags.CmiFluidTags.BLAZE_COLLECTABLE.tag())) {
@@ -399,7 +398,7 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
             compoundTag.put("mining_task", mineFieldSubTask.serializeNBT());
         compoundTag.put("blaze_inventory", blazeInv.createTag());
         compoundTag.put("station_inventory", stationInv.serializeNBT());
-        if(commandCenterPos!=null)
+        if(commandCenterPos !=null)
             compoundTag.put("center_pos", NbtUtils.writeBlockPos(commandCenterPos));
         compoundTag.putInt("collected", itemCollected);
         NBTHelper.writeEnum(compoundTag,"phase",phase);
