@@ -56,19 +56,25 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
     @Nullable
     BlockPos commandCenterPos;
     Phase phase;
+    BlockAction blockAction;
+    FluidAction fluidAction;
     LazyOptional<IItemHandlerModifiable> handler = LazyOptional.of(() -> stationInv);
     int itemCollected;
     int idleTime;
+    int progressTime;
 
     public BlazeMinerStationBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
         super(type, pos, state);
         blazeInv = new BlazeMinerInventory();
         stationInv = new SmartInventory(27,this).forbidInsertion();
         phase = Phase.SEARCH_COMMAND_CENTER;
+        blockAction = BlockAction.NONE;
+        fluidAction = FluidAction.NONE;
         itemCollected = 0;
         mineFieldSubTask = null;
         commandCenterPos = null;
         idleTime = 0;
+        progressTime = 0;
     }
 
     @Override
@@ -220,15 +226,48 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
 
     private void mine() {
         if(!level.isClientSide()){
-            var pos = mineFieldSubTask.getTargetPos();
+            if(progressTime==0){
+                if(blockAction == BlockAction.NONE && fluidAction==FluidAction.NONE){
+                    var pos = mineFieldSubTask.getTargetPos();
 
-            // Mine Block
-            var blockState = level.getBlockState(pos);
-            if(blockState.is(CmiTags.CmiBlockTags.BLAZE_RESOURCE_PACKAGE.tag())){
-                // Generate Blaze Resource Package
-                // TODO
+                    // Mine Block
+                    var blockState = level.getBlockState(pos);
+                    if(blockState.is(CmiTags.CmiBlockTags.BLAZE_RESOURCE_PACKAGE.tag())){
+                        blockAction = BlockAction.EXTRACT_RESOURCE;
+                    } else if(blockState.is(CmiTags.CmiBlockTags.BLAZE_SILK_TOUCH.tag())){
+                        blockAction = BlockAction.SILK_TOUCH;
+                    } else if(blockState.is(CmiTags.CmiBlockTags.BLAZE_BURN.tag())){
+                        blockAction = BlockAction.BURNOUT;
+                    } else if(!blockState.is(CmiTags.CmiBlockTags.BLAZE_IGNORE.tag())){
+                        blockAction = BlockAction.BREAK;
+                    }
+                    progressTime = blockAction.tick;
+
+                    // Mine Liquid
+                    var fluidState = level.getFluidState(pos);
+                    if(!fluidState.isEmpty()){
+                        if(fluidState.isSource() && fluidState.is(CmiTags.CmiFluidTags.BLAZE_COLLECTABLE.tag())){
+                            fluidAction = FluidAction.EXTRACT_FLUID;
+                        } else fluidAction = FluidAction.DRY;
+                    }
+                }
+                else {
+                    finishMine();
+                    return;
+                }
+            }
+            progressTime --;
+        }
+    }
+    private void finishMine(){
+        var pos = mineFieldSubTask.getTargetPos();
+
+        // Mine Block
+        if(blockAction!=BlockAction.NONE){
+            if(blockAction==BlockAction.EXTRACT_RESOURCE){
+                // TODO Generate Blaze Resource Package
                 level.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
-            } else if(blockState.is(CmiTags.CmiBlockTags.BLAZE_SILK_TOUCH.tag())){
+            } else if(blockAction==BlockAction.SILK_TOUCH){
                 BlockHelper.destroyBlockAs(level, pos, null,SILK_TOUCH_TOOL,1f, (stack) -> {
                     if (stack.isEmpty())
                         return;
@@ -239,10 +278,10 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
                     itemCollected+=stack.getCount();
                     addToBlazeBackpack(stack);
                 });
-            }  else if(blockState.is(CmiTags.CmiBlockTags.BLAZE_BURN.tag())){
-                // Burn the Block
+            }  else if(blockAction==BlockAction.BURNOUT){
+                // TODO Burn the Block
                 level.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
-            } else if(!blockState.is(CmiTags.CmiBlockTags.BLAZE_IGNORE.tag())){
+            } else if(blockAction==BlockAction.BREAK){
                 BlockHelper.destroyBlock(level, pos, 1f, (stack) -> {
                     if (stack.isEmpty())
                         return;
@@ -254,33 +293,42 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
                     addToBlazeBackpack(stack);
                 });
             }
-
+            blockAction = BlockAction.NONE;
+            if(fluidAction!=FluidAction.NONE){
+                notifyUpdate();
+                progressTime = fluidAction.tick;
+            } else {
+                afterMine();
+            }
+        } else {
             // Mine Liquid
             var fluidState = level.getFluidState(pos);
-            if(!fluidState.isEmpty()){
-                if(fluidState.isSource() && fluidState.is(CmiTags.CmiFluidTags.BLAZE_COLLECTABLE.tag())){
-                    // Pack Fluid
-                    level.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
-                    addToBlazeBackpack(BlazeFluidHolderItem.ofFluid(fluidState.getType()));
-                    itemCollected+=1;
-                } else {
-                    // absorb fluid
-                    removeNearbyLiquid(level,pos);
-                }
+            if(fluidAction==FluidAction.EXTRACT_FLUID){
+                // Pack Fluid
+                level.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
+                addToBlazeBackpack(BlazeFluidHolderItem.ofFluid(fluidState.getType()));
+                itemCollected+=1;
+            } else {
+                // absorb fluid
+                removeNearbyLiquid(level,pos);
             }
-
-            if(!blazeInv.backupInv.isEmpty()){
-                setPhase(Phase.BLINK_TO_STATION);
-                return;
-            }
-            mineFieldSubTask.nextPos();
-            if(mineFieldSubTask.done()){
-                mineFieldSubTask = null;
-                setPhase(Phase.BLINK_TO_STATION);
-                return;
-            }
-            setPhase(Phase.SEARCH_MINEABLE);
+            fluidAction = FluidAction.NONE;
+            afterMine();
         }
+    }
+
+    private void afterMine(){
+        if(!blazeInv.backupInv.isEmpty()){
+            setPhase(Phase.BLINK_TO_STATION);
+            return;
+        }
+        mineFieldSubTask.nextPos();
+        if(mineFieldSubTask.done()){
+            mineFieldSubTask = null;
+            setPhase(Phase.BLINK_TO_STATION);
+            return;
+        }
+        setPhase(Phase.SEARCH_MINEABLE);
     }
 
     private void blinkToStation() {
@@ -402,7 +450,10 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
             compoundTag.put("center_pos", NbtUtils.writeBlockPos(commandCenterPos));
         compoundTag.putInt("collected", itemCollected);
         NBTHelper.writeEnum(compoundTag,"phase",phase);
+        NBTHelper.writeEnum(compoundTag,"block_action", blockAction);
+        NBTHelper.writeEnum(compoundTag,"fluid_action", fluidAction);
         compoundTag.putInt("idle_time",idleTime);
+        compoundTag.putInt("progress_time",progressTime);
     }
 
     @Override
@@ -417,7 +468,10 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
             commandCenterPos = NbtUtils.readBlockPos((CompoundTag) compoundTag.get("center_pos"));
         itemCollected = compoundTag.getInt("collected");
         phase = NBTHelper.readEnum(compoundTag,"phase",Phase.class);
+        blockAction = NBTHelper.readEnum(compoundTag,"block_action", BlockAction.class);
+        fluidAction = NBTHelper.readEnum(compoundTag,"fluid_action", FluidAction.class);
         idleTime = compoundTag.getInt("idle_time");
+        progressTime = compoundTag.getInt("progress_time");
     }
 
     @Override
@@ -455,6 +509,33 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
         MINE,
         BLINK_TO_STATION,
         TRANSFER_ITEM
+    }
+
+    enum BlockAction {
+        NONE(0),
+        SILK_TOUCH(20),
+        EXTRACT_RESOURCE(40),
+        BURNOUT(10),
+        BREAK(10); // Common mining action
+
+
+        public final int tick;
+
+        BlockAction(int tick) {
+            this.tick = tick;
+        }
+    }
+
+    enum FluidAction{
+        NONE(0),
+        EXTRACT_FLUID(40),
+        DRY(10);
+
+        public final int tick;
+
+        FluidAction(int tick) {
+            this.tick = tick;
+        }
     }
 
     static class BlazeMinerInventory extends SimpleContainer{
