@@ -25,7 +25,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.material.FluidState;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.items.IItemHandlerModifiable;
@@ -206,7 +205,7 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
                 return;
             }
             var i = 0;
-            while(!validMineLocation(mineFieldSubTask.getTargetPos()) && !mineFieldSubTask.done() && i<16){
+            while(!validBlock(mineFieldSubTask.getTargetPos()) && !mineFieldSubTask.done() && i<16){
                 mineFieldSubTask.nextPos();
                 i++;
             }
@@ -220,11 +219,6 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
         }
     }
 
-    private boolean validMineLocation(BlockPos pos){
-        var bs = level.getBlockState(pos);
-        return !bs.isAir() && !bs.is(CmiTags.CmiBlockTags.BLAZE_IGNORE.tag());
-    }
-
     private void blinkToMineable() {
         if(!level.isClientSide()){
             setPhase(Phase.MINE);
@@ -235,96 +229,110 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
         if(!level.isClientSide()){
             if(progressTime==0){
                 if(blockAction == BlockAction.NONE && fluidAction==FluidAction.NONE){
-                    var pos = mineFieldSubTask.getTargetPos();
-
-                    // Mine Block
-                    var blockState = level.getBlockState(pos);
-                    if(blockState.is(CmiTags.CmiBlockTags.BLAZE_RESOURCE_PACKAGE.tag())){
-                        blockAction = BlockAction.EXTRACT_RESOURCE;
-                    } else if(blockState.is(CmiTags.CmiBlockTags.BLAZE_SILK_TOUCH.tag())){
-                        blockAction = BlockAction.SILK_TOUCH;
-                    } else if(blockState.is(CmiTags.CmiBlockTags.BLAZE_BURN.tag())){
-                        blockAction = BlockAction.BURNOUT;
-                    } else if(!blockState.is(CmiTags.CmiBlockTags.BLAZE_IGNORE.tag())){
-                        blockAction = BlockAction.BREAK;
-                    }
-                    progressTime = blockAction.tick;
-
-                    // Mine Liquid
-                    var fluidState = level.getFluidState(pos);
-                    if(!fluidState.isEmpty()){
-                        if(fluidState.isSource() && fluidState.is(CmiTags.CmiFluidTags.BLAZE_COLLECTABLE.tag())){
-                            fluidAction = FluidAction.EXTRACT_FLUID;
-                        } else fluidAction = FluidAction.DRY;
+                    decideBlockMineActionType();
+                    if(blockAction == BlockAction.NONE){
+                        decideFluidMineActionType();
                     }
                 }
-                else {
-                    finishMine();
+                else if(fluidAction!=FluidAction.NONE){
+                    finishMineFluid();
+                    return;
+                } else {
+                    finishMineBlock();
                     return;
                 }
             }
             progressTime --;
         }
     }
-    private void finishMine(){
+
+    private void decideBlockMineActionType(){
+        var pos = mineFieldSubTask.getTargetPos();
+        var blockState = level.getBlockState(pos);
+        if(blockState.is(CmiTags.CmiBlockTags.BLAZE_RESOURCE_PACKAGE.tag())){
+            blockAction = BlockAction.EXTRACT_RESOURCE;
+        } else if(blockState.is(CmiTags.CmiBlockTags.BLAZE_SILK_TOUCH.tag())){
+            blockAction = BlockAction.SILK_TOUCH;
+        } else if(blockState.is(CmiTags.CmiBlockTags.BLAZE_BURN.tag())){
+            blockAction = BlockAction.BURNOUT;
+        } else if(!blockState.is(CmiTags.CmiBlockTags.BLAZE_IGNORE.tag()) && !blockState.getMaterial().isLiquid()){
+            blockAction = BlockAction.BREAK;
+        }
+        progressTime = blockAction.tick;
+    }
+
+    private void decideFluidMineActionType(){
+        var pos = mineFieldSubTask.getTargetPos();
+        if(validFluid(pos)){
+            if(validCollectibleFluid(pos)){
+                fluidAction = FluidAction.EXTRACT_FLUID;
+            } else fluidAction = FluidAction.DRY;
+        }
+        progressTime = blockAction.tick;
+    }
+
+
+    private void finishMineBlock(){
         var pos = mineFieldSubTask.getTargetPos();
 
         // Mine Block
-        if(blockAction!=BlockAction.NONE){
-            if(blockAction==BlockAction.EXTRACT_RESOURCE){
-                var packages = ResourcePackageGeneration.getPackages((ServerLevel) level,pos,this.level.getRandom());
-                for(var entry:packages.entrySet()){
-                    addToBlazeBackpack(BlazeResourcePackageItem.ofSeed(entry.getKey(),entry.getValue()));
-                }
-                level.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
-            } else if(blockAction==BlockAction.SILK_TOUCH){
-                BlockHelper.destroyBlockAs(level, pos, null,SILK_TOUCH_TOOL,1f, (stack) -> {
-                    if (stack.isEmpty())
-                        return;
-                    if (!level.getGameRules().getBoolean(GameRules.RULE_DOBLOCKDROPS))
-                        return;
-                    if (level.restoringBlockSnapshots)
-                        return;
-                    itemCollected+=stack.getCount();
-                    addToBlazeBackpack(stack);
-                });
-            }  else if(blockAction==BlockAction.BURNOUT){
-                // TODO Burn the Block
-                level.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
-            } else if(blockAction==BlockAction.BREAK){
-                BlockHelper.destroyBlock(level, pos, 1f, (stack) -> {
-                    if (stack.isEmpty())
-                        return;
-                    if (!level.getGameRules().getBoolean(GameRules.RULE_DOBLOCKDROPS))
-                        return;
-                    if (level.restoringBlockSnapshots)
-                        return;
-                    itemCollected+=stack.getCount();
-                    addToBlazeBackpack(stack);
-                });
+        if(blockAction==BlockAction.EXTRACT_RESOURCE){
+            var packages = ResourcePackageGeneration.getPackages((ServerLevel) level,pos,this.level.getRandom());
+            for(var entry:packages.entrySet()){
+                addToBlazeBackpack(BlazeResourcePackageItem.ofSeed(entry.getKey(),entry.getValue()));
             }
-            blockAction = BlockAction.NONE;
-            if(fluidAction!=FluidAction.NONE){
-                notifyUpdate();
-                progressTime = fluidAction.tick;
-            } else {
-                afterMine();
-            }
+            level.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
+        } else if(blockAction==BlockAction.SILK_TOUCH){
+            BlockHelper.destroyBlockAs(level, pos, null,SILK_TOUCH_TOOL,1f, (stack) -> {
+                if (stack.isEmpty())
+                    return;
+                if (!level.getGameRules().getBoolean(GameRules.RULE_DOBLOCKDROPS))
+                    return;
+                if (level.restoringBlockSnapshots)
+                    return;
+                itemCollected+=stack.getCount();
+                addToBlazeBackpack(stack);
+            });
+        }  else if(blockAction==BlockAction.BURNOUT){
+            // TODO Burn the Block
+            level.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
+        } else if(blockAction==BlockAction.BREAK){
+            BlockHelper.destroyBlock(level, pos, 1f, (stack) -> {
+                if (stack.isEmpty())
+                    return;
+                if (!level.getGameRules().getBoolean(GameRules.RULE_DOBLOCKDROPS))
+                    return;
+                if (level.restoringBlockSnapshots)
+                    return;
+                itemCollected+=stack.getCount();
+                addToBlazeBackpack(stack);
+            });
+        }
+        blockAction = BlockAction.NONE;
+        // Detect Fluid and set status
+        decideFluidMineActionType();
+        if(fluidAction!=FluidAction.NONE){
+            notifyUpdate();
         } else {
-            // Mine Liquid
-            var fluidState = level.getFluidState(pos);
-            if(fluidAction==FluidAction.EXTRACT_FLUID){
-                // Pack Fluid
-                level.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
-                addToBlazeBackpack(BlazeFluidHolderItem.ofFluid(fluidState.getType()));
-                itemCollected+=1;
-            } else {
-                // absorb fluid
-                removeNearbyLiquid(level,pos);
-            }
-            fluidAction = FluidAction.NONE;
             afterMine();
         }
+    }
+
+    private void finishMineFluid(){
+        var pos = mineFieldSubTask.getTargetPos();
+
+        var fluidState = level.getFluidState(pos);
+        if(fluidAction==FluidAction.EXTRACT_FLUID){
+            // Pack Fluid
+            level.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
+            addToBlazeBackpack(BlazeFluidHolderItem.ofFluid(fluidState.getType()));
+            itemCollected+=1;
+        } else {
+            // absorb fluid
+            removeNearbyLiquid(level,pos);
+        }
+        fluidAction = FluidAction.NONE;
+        afterMine();
     }
 
     private void afterMine(){
@@ -339,6 +347,23 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
             return;
         }
         setPhase(Phase.SEARCH_MINEABLE);
+    }
+
+    private boolean validBlock(BlockPos pos){
+        var bs = level.getBlockState(pos);
+        return !bs.isAir() && !bs.is(CmiTags.CmiBlockTags.BLAZE_IGNORE.tag());
+    }
+
+    // Different to validBlock.
+    // This method returns turn only when fluid is valid of being collected.
+    private boolean validFluid(BlockPos pos){
+        var fs = level.getFluidState(pos);
+        return !fs.isEmpty();
+    }
+
+    private boolean validCollectibleFluid(BlockPos pos){
+        var fs = level.getFluidState(pos);
+        return fs.isSource() && fs.is(CmiTags.CmiFluidTags.BLAZE_COLLECTIBLE.tag());
     }
 
     private void blinkToStation() {
@@ -434,9 +459,7 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
 
             for(Direction direction : DIRECTIONS) {
                 BlockPos blockpos1 = blockpos.relative(direction);
-                var fluidstate = pLevel.getFluidState(blockpos1);
-                var material = pLevel.getBlockState(blockpos1).getMaterial();
-                if (material.isLiquid() && (!fluidstate.isSource() || !fluidstate.is(CmiTags.CmiFluidTags.BLAZE_COLLECTABLE.tag()))) {
+                if (validFluid(blockpos1) && !validCollectibleFluid(blockpos1)) {
                     pLevel.setBlockAndUpdate(blockpos1, Blocks.AIR.defaultBlockState());
                     i++;
                     queue.add(blockpos1);

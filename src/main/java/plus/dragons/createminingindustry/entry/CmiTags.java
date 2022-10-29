@@ -159,6 +159,12 @@ public interface CmiTags<T, P extends RegistrateTagsProvider<T>> {
                 // TODO If no use then delete it.
                 //pov.tag(tag).add(Items.EXPERIENCE_BOTTLE);
             }
+        },
+        RESOURCE_PACKAGE_ITEM(true){
+            @Override
+            public void datagen(RegistrateItemTagsProvider pov) {
+                //pov.tag(tag).addTag(Tags.Blocks.ORES);
+            }
         };
         
         final TagKey<Item> tag;
@@ -186,7 +192,13 @@ public interface CmiTags<T, P extends RegistrateTagsProvider<T>> {
     
     enum CmiFluidTags implements CmiTags<Fluid, RegistrateTagsProvider<Fluid>> {
         //No experience fluid tag here as different ratios is not acceptable
-        BLAZE_COLLECTABLE( true) {
+        BLAZE_COLLECTIBLE( true) {
+            @Override
+            public void datagen(RegistrateTagsProvider<Fluid> pov) {
+                pov.tag(tag).add(Fluids.LAVA.getSource());
+            }
+        },
+        RESOURCE_PACKAGE_FLUID( true) {
             @Override
             public void datagen(RegistrateTagsProvider<Fluid> pov) {
                 pov.tag(tag).add(Fluids.LAVA.getSource());
