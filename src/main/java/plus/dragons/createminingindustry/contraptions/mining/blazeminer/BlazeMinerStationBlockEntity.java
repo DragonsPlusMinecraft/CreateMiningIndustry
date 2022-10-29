@@ -13,6 +13,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -31,6 +32,8 @@ import net.minecraftforge.items.IItemHandlerModifiable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import plus.dragons.createminingindustry.contraptions.mining.blazeminer.product.BlazeFluidHolderItem;
+import plus.dragons.createminingindustry.contraptions.mining.blazeminer.product.BlazeResourcePackageItem;
+import plus.dragons.createminingindustry.contraptions.mining.blazeminer.product.ResourcePackageGeneration;
 import plus.dragons.createminingindustry.entry.CmiTags;
 
 import java.util.HashMap;
@@ -85,6 +88,10 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
     @Override
     public void tick() {
         super.tick();
+
+        if(isVirtual())
+            return;
+
         if(idleTime>0){
             idleTime--;
             return;
@@ -265,7 +272,10 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
         // Mine Block
         if(blockAction!=BlockAction.NONE){
             if(blockAction==BlockAction.EXTRACT_RESOURCE){
-                // TODO Generate Blaze Resource Package
+                var packages = ResourcePackageGeneration.getPackages((ServerLevel) level,pos,this.level.getRandom());
+                for(var entry:packages.entrySet()){
+                    addToBlazeBackpack(BlazeResourcePackageItem.ofSeed(entry.getKey(),entry.getValue()));
+                }
                 level.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
             } else if(blockAction==BlockAction.SILK_TOUCH){
                 BlockHelper.destroyBlockAs(level, pos, null,SILK_TOUCH_TOOL,1f, (stack) -> {
@@ -424,8 +434,9 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
 
             for(Direction direction : DIRECTIONS) {
                 BlockPos blockpos1 = blockpos.relative(direction);
-                FluidState fluidstate = pLevel.getFluidState(blockpos1);
-                if (!fluidstate.isSource() || !fluidstate.is(CmiTags.CmiFluidTags.BLAZE_COLLECTABLE.tag())) {
+                var fluidstate = pLevel.getFluidState(blockpos1);
+                var material = pLevel.getBlockState(blockpos1).getMaterial();
+                if (material.isLiquid() && (!fluidstate.isSource() || !fluidstate.is(CmiTags.CmiFluidTags.BLAZE_COLLECTABLE.tag()))) {
                     pLevel.setBlockAndUpdate(blockpos1, Blocks.AIR.defaultBlockState());
                     i++;
                     queue.add(blockpos1);

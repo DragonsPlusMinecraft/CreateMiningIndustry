@@ -45,7 +45,6 @@ public class MiningIndustry {
         CmiFluids.register();
         CmiContainerTypes.register();
         CmiTags.register();
-
     }
     
     private void addForgeEventListeners(IEventBus forgeEventBus) {

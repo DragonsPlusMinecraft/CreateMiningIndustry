@@ -186,10 +186,9 @@ public interface CmiTags<T, P extends RegistrateTagsProvider<T>> {
     
     enum CmiFluidTags implements CmiTags<Fluid, RegistrateTagsProvider<Fluid>> {
         //No experience fluid tag here as different ratios is not acceptable
-        BLAZE_COLLECTABLE( false) {
+        BLAZE_COLLECTABLE( true) {
             @Override
             public void datagen(RegistrateTagsProvider<Fluid> pov) {
-                // TODO If no use then delete it.
                 pov.tag(tag).add(Fluids.LAVA.getSource());
             }
         };
