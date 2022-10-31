@@ -57,6 +57,11 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
     SmartInventory stationInv; // 27
     @Nullable
     BlockPos commandCenterPos;
+    BlockPos blazePos;
+    @Nullable
+    BlockPos blazeNextPos;
+    double travelingPercentage;
+    boolean blinkTraveling;
     Phase phase;
     BlockAction blockAction;
     FluidAction fluidAction;
@@ -75,6 +80,9 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
         itemCollected = 0;
         mineFieldSubTask = null;
         commandCenterPos = null;
+        blazePos = pos;
+        travelingPercentage = 0;
+        blinkTraveling = false;
         idleTime = 0;
         progressTime = 0;
     }
@@ -107,14 +115,14 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
         else if(phase == Phase.SEARCH_MINEABLE){
             searchMineable();
         }
-        else if(phase == Phase.BLINK_TO_MINEABLE){
-            blinkToMineable();
+        else if(phase == Phase.TRAVEL_TO_MINEABLE){
+            travelToMineable();
         }
         else if(phase == Phase.MINE){
             mine();
         }
-        else if(phase == Phase.BLINK_TO_STATION){
-            blinkToStation();
+        else if(phase == Phase.TRAVEL_TO_STATION){
+            travelToStation();
         }
         else if(phase == Phase.TRANSFER_ITEM){
             transferItem();
@@ -215,11 +223,14 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
                 return;
             }
             if(i==16) return;
-            setPhase(Phase.BLINK_TO_MINEABLE);
+            setPhase(Phase.TRAVEL_TO_MINEABLE);
         }
     }
 
-    private void blinkToMineable() {
+    private void travelToMineable() {
+        // Determine travel destination & method in server and send it to client for animation.
+        // Movement calculation is running on both server & client.
+        // So must add some extra time for network delay.
         if(!level.isClientSide()){
             setPhase(Phase.MINE);
         }
@@ -337,13 +348,13 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
 
     private void afterMine(){
         if(!blazeInv.backupInv.isEmpty()){
-            setPhase(Phase.BLINK_TO_STATION);
+            setPhase(Phase.TRAVEL_TO_STATION);
             return;
         }
         mineFieldSubTask.nextPos();
         if(mineFieldSubTask.done()){
             mineFieldSubTask = null;
-            setPhase(Phase.BLINK_TO_STATION);
+            setPhase(Phase.TRAVEL_TO_STATION);
             return;
         }
         setPhase(Phase.SEARCH_MINEABLE);
@@ -366,7 +377,10 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
         return fs.isSource() && fs.is(CmiTags.CmiFluidTags.BLAZE_COLLECTIBLE.tag());
     }
 
-    private void blinkToStation() {
+    private void travelToStation() {
+        // Determine travel destination & method in server and send it to client for animation.
+        // Movement calculation is running on both server & client.
+        // So must add some extra time for network delay.
         if(!level.isClientSide()){
             setPhase(Phase.TRANSFER_ITEM);
         }
@@ -474,38 +488,50 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
 
     @Override
     public void write(CompoundTag compoundTag, boolean clientPacket) {
-        // TODO
         super.write(compoundTag, clientPacket);
-        if(mineFieldSubTask !=null)
-            compoundTag.put("mining_task", mineFieldSubTask.serializeNBT());
-        compoundTag.put("blaze_inventory", blazeInv.createTag());
         compoundTag.put("station_inventory", stationInv.serializeNBT());
-        if(commandCenterPos !=null)
-            compoundTag.put("center_pos", NbtUtils.writeBlockPos(commandCenterPos));
-        compoundTag.putInt("collected", itemCollected);
+        compoundTag.put("blaze_pos", NbtUtils.writeBlockPos(blazePos));
+        if(blazeNextPos !=null)
+            compoundTag.put("blaze_next_pos", NbtUtils.writeBlockPos(blazeNextPos));
         NBTHelper.writeEnum(compoundTag,"phase",phase);
         NBTHelper.writeEnum(compoundTag,"block_action", blockAction);
         NBTHelper.writeEnum(compoundTag,"fluid_action", fluidAction);
         compoundTag.putInt("idle_time",idleTime);
         compoundTag.putInt("progress_time",progressTime);
+        compoundTag.putBoolean("blink",blinkTraveling);
+        if(!clientPacket){
+            if(mineFieldSubTask !=null)
+                compoundTag.put("mining_task", mineFieldSubTask.serializeNBT());
+            compoundTag.put("blaze_inventory", blazeInv.createTag());
+            if(commandCenterPos !=null)
+                compoundTag.put("center_pos", NbtUtils.writeBlockPos(commandCenterPos));
+            compoundTag.putInt("collected", itemCollected);
+            compoundTag.putDouble("travel_pctg",travelingPercentage);
+        }
     }
 
     @Override
     protected void read(CompoundTag compoundTag, boolean clientPacket) {
-        // TODO
         super.read(compoundTag, clientPacket);
-        if(compoundTag.contains("mining_task"))
-            mineFieldSubTask = MineFieldSubTask.fromNBT((CompoundTag) compoundTag.get("mining_task"));
-        blazeInv.fromTag((ListTag) compoundTag.get("blaze_inventory"));
         stationInv.deserializeNBT((CompoundTag) compoundTag.get("station_inventory"));
-        if(compoundTag.contains("center_pos"))
-            commandCenterPos = NbtUtils.readBlockPos((CompoundTag) compoundTag.get("center_pos"));
-        itemCollected = compoundTag.getInt("collected");
+        blazePos = NbtUtils.readBlockPos((CompoundTag) compoundTag.get("blaze_pos"));
+        if(compoundTag.contains("blaze_next_pos"))
+            blazeNextPos = NbtUtils.readBlockPos((CompoundTag) compoundTag.get("blaze_next_pos"));
         phase = NBTHelper.readEnum(compoundTag,"phase",Phase.class);
         blockAction = NBTHelper.readEnum(compoundTag,"block_action", BlockAction.class);
         fluidAction = NBTHelper.readEnum(compoundTag,"fluid_action", FluidAction.class);
         idleTime = compoundTag.getInt("idle_time");
         progressTime = compoundTag.getInt("progress_time");
+        blinkTraveling = compoundTag.getBoolean("blink");
+        if(!clientPacket){
+            if(compoundTag.contains("mining_task"))
+                mineFieldSubTask = MineFieldSubTask.fromNBT((CompoundTag) compoundTag.get("mining_task"));
+            blazeInv.fromTag((ListTag) compoundTag.get("blaze_inventory"));
+            if(compoundTag.contains("center_pos"))
+                commandCenterPos = NbtUtils.readBlockPos((CompoundTag) compoundTag.get("center_pos"));
+            itemCollected = compoundTag.getInt("collected");
+            travelingPercentage = compoundTag.getDouble("travel_pctg");
+        }
     }
 
     @Override
@@ -539,9 +565,9 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
         REQUEST_JOB,
         REQUEST_TASK,
         SEARCH_MINEABLE,
-        BLINK_TO_MINEABLE,
+        TRAVEL_TO_MINEABLE,
         MINE,
-        BLINK_TO_STATION,
+        TRAVEL_TO_STATION,
         TRANSFER_ITEM
     }
 
