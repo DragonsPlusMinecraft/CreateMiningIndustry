@@ -124,14 +124,14 @@ public class MineCommandCenterBlockEntity extends SmartTileEntity implements IHa
 
         @Override
         public ItemStack insertItem(int slot, ItemStack stack, boolean simulate) {
-            if(!stack.is(CmiItems.BLAZE_MINER_TOOLKIT.get())) return stack;
+            if(!stack.is(CmiItems.BLAZE_MINER_SUIT.get())) return stack;
             else return super.insertItem(slot,stack,simulate);
         }
 
 
         @Override
         public boolean isItemValid(int slot, ItemStack stack) {
-            if(!stack.is(CmiItems.BLAZE_MINER_TOOLKIT.get())) return false;
+            if(!stack.is(CmiItems.BLAZE_MINER_SUIT.get())) return false;
             else return super.isItemValid(slot,stack);
         }
     }

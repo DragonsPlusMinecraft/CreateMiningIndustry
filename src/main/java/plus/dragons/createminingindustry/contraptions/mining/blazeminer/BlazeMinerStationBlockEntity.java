@@ -30,9 +30,9 @@ import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.items.IItemHandlerModifiable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import plus.dragons.createminingindustry.contraptions.mining.blazeminer.product.BlazeFluidHolderItem;
-import plus.dragons.createminingindustry.contraptions.mining.blazeminer.product.BlazeResourcePackageItem;
-import plus.dragons.createminingindustry.contraptions.mining.blazeminer.product.ResourcePackageGeneration;
+import plus.dragons.createminingindustry.contraptions.mining.blazeminer.product.fluidpackage.BlazeFluidContainerItem;
+import plus.dragons.createminingindustry.contraptions.mining.blazeminer.product.mineralcluster.MineralClusterDistributionGeneration;
+import plus.dragons.createminingindustry.contraptions.mining.blazeminer.product.mineralcluster.MineralClusterItem;
 import plus.dragons.createminingindustry.entry.CmiTags;
 
 import java.util.HashMap;
@@ -260,13 +260,13 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
     private void decideBlockMineActionType(){
         var pos = mineFieldSubTask.getTargetPos();
         var blockState = level.getBlockState(pos);
-        if(blockState.is(CmiTags.CmiBlockTags.BLAZE_RESOURCE_PACKAGE.tag())){
+        if(blockState.is(CmiTags.CmiBlockTags.BLAZE_MINER_MINERAL_CLUSRER.tag())){
             blockAction = BlockAction.EXTRACT_RESOURCE;
-        } else if(blockState.is(CmiTags.CmiBlockTags.BLAZE_SILK_TOUCH.tag())){
+        } else if(blockState.is(CmiTags.CmiBlockTags.BLAZE_MINER_SILK_TOUCH.tag())){
             blockAction = BlockAction.SILK_TOUCH;
-        } else if(blockState.is(CmiTags.CmiBlockTags.BLAZE_BURN.tag())){
+        } else if(blockState.is(CmiTags.CmiBlockTags.BLAZE_MINER_BURN.tag())){
             blockAction = BlockAction.BURNOUT;
-        } else if(!blockState.is(CmiTags.CmiBlockTags.BLAZE_IGNORE.tag()) && !blockState.getMaterial().isLiquid()){
+        } else if(!blockState.is(CmiTags.CmiBlockTags.BLAZE_MINER_IGNORE.tag()) && !blockState.getMaterial().isLiquid()){
             blockAction = BlockAction.BREAK;
         }
         progressTime = blockAction.tick;
@@ -288,9 +288,9 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
 
         // Mine Block
         if(blockAction==BlockAction.EXTRACT_RESOURCE){
-            var packages = ResourcePackageGeneration.getPackages((ServerLevel) level,pos,this.level.getRandom());
+            var packages = MineralClusterDistributionGeneration.genAmountsOfAllMineralCluster((ServerLevel) level,pos,this.level.getRandom());
             for(var entry:packages.entrySet()){
-                addToBlazeBackpack(BlazeResourcePackageItem.ofSeed(entry.getKey(),entry.getValue()));
+                addToBlazeBackpack(MineralClusterItem.ofSeed(entry.getKey(),entry.getValue()));
             }
             level.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
         } else if(blockAction==BlockAction.SILK_TOUCH){
@@ -336,7 +336,7 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
         if(fluidAction==FluidAction.EXTRACT_FLUID){
             // Pack Fluid
             level.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
-            addToBlazeBackpack(BlazeFluidHolderItem.ofFluid(fluidState.getType()));
+            addToBlazeBackpack(BlazeFluidContainerItem.ofFluid(fluidState.getType()));
             itemCollected+=1;
         } else {
             // absorb fluid
@@ -362,7 +362,7 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
 
     private boolean validBlock(BlockPos pos){
         var bs = level.getBlockState(pos);
-        return !bs.isAir() && !bs.is(CmiTags.CmiBlockTags.BLAZE_IGNORE.tag());
+        return !bs.isAir() && !bs.is(CmiTags.CmiBlockTags.BLAZE_MINER_IGNORE.tag());
     }
 
     // Different to validBlock.
@@ -374,7 +374,7 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
 
     private boolean validCollectibleFluid(BlockPos pos){
         var fs = level.getFluidState(pos);
-        return fs.isSource() && fs.is(CmiTags.CmiFluidTags.BLAZE_COLLECTIBLE.tag());
+        return fs.isSource() && fs.is(CmiTags.CmiFluidTags.BLAZE_MINER_COLLECTIBLE_LIQUID.tag());
     }
 
     private void travelToStation() {
