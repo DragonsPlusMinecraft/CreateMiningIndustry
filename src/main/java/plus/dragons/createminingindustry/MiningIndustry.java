@@ -45,6 +45,7 @@ public class MiningIndustry {
         modEventBus.register(this);
         modEventBus.addListener(EventPriority.LOWEST, LANG_FACTORY::datagen);
         modEventBus.addListener(MineralClusterContentGeneration::registerResourcePackage);
+        modEventBus.addListener(CmiEntityTypes::registerEntityAttributes);
         registerForgeEvents(forgeEventBus);
 
         DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> MiningIndustryClient::new);

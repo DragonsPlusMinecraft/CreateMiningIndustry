@@ -136,7 +136,7 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
                 for(int j=-4;j<=4;j++){
                     for(int k=-4;k<=4;k++){
                         var pos = getBlockPos().offset(i,j,k);
-                        if(level.getBlockEntity(pos) instanceof MineCommandCenterBlockEntity){
+                        if(level.getBlockEntity(pos) instanceof MineCommandPostBlockEntity){
                             if(commandCenterPos!=null){
                                 if(getBlockPos().distToLowCornerSqr(pos.getX(),pos.getY(),pos.getZ()) <
                                         getBlockPos().distToLowCornerSqr(commandCenterPos.getX(),commandCenterPos.getY(),commandCenterPos.getZ()))
@@ -160,12 +160,12 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
     private void requestJob() {
         if(!level.isClientSide()){
             var blockEntity = level.getBlockEntity(commandCenterPos);
-            if(blockEntity instanceof MineCommandCenterBlockEntity mineCommandCenterBlockEntity){
-                if(mineCommandCenterBlockEntity.mineFieldTask == null || mineCommandCenterBlockEntity.mineFieldTask.done()){
+            if(blockEntity instanceof MineCommandPostBlockEntity mineCommandPostBlockEntity){
+                if(mineCommandPostBlockEntity.mineFieldTask == null || mineCommandPostBlockEntity.mineFieldTask.done()){
                     idleTime = 200;
                     notifyUpdate();
                 } else {
-                    var result = mineCommandCenterBlockEntity.consumeToolkit();
+                    var result = mineCommandPostBlockEntity.consumeToolkit();
                     if(result){
                         setPhase(Phase.REQUEST_TASK);
                     } else {
@@ -183,12 +183,12 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
     private void requestTask() {
         if(!level.isClientSide()){
             var blockEntity = level.getBlockEntity(commandCenterPos);
-            if(blockEntity instanceof MineCommandCenterBlockEntity mineCommandCenterBlockEntity){
-                if(mineCommandCenterBlockEntity.mineFieldTask == null ||mineCommandCenterBlockEntity.mineFieldTask.done()){
+            if(blockEntity instanceof MineCommandPostBlockEntity mineCommandPostBlockEntity){
+                if(mineCommandPostBlockEntity.mineFieldTask == null || mineCommandPostBlockEntity.mineFieldTask.done()){
                     idleTime = 200;
                     notifyUpdate();
                 } else {
-                    mineFieldSubTask = mineCommandCenterBlockEntity.nextTask();
+                    mineFieldSubTask = mineCommandPostBlockEntity.nextTask();
                     System.out.println("Obtain Sub Task:" + mineFieldSubTask);
                     if(mineFieldSubTask==null){
                         idleTime = 200;
@@ -426,8 +426,8 @@ public class BlazeMinerStationBlockEntity extends SmartTileEntity implements IHa
                 itemCollected = 0;
                 if (!mineFieldSubTask.done()){
                     var blockEntity = level.getBlockEntity(commandCenterPos);
-                    if(blockEntity instanceof MineCommandCenterBlockEntity mineCommandCenterBlockEntity){
-                        mineCommandCenterBlockEntity.returnTask(mineFieldSubTask);
+                    if(blockEntity instanceof MineCommandPostBlockEntity mineCommandPostBlockEntity){
+                        mineCommandPostBlockEntity.returnTask(mineFieldSubTask);
                         mineFieldSubTask = null;
                         setPhase(Phase.REQUEST_JOB);
                     } else {

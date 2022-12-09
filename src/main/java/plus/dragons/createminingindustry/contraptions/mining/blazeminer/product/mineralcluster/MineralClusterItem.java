@@ -17,7 +17,7 @@ public class MineralClusterItem extends Item {
     }
 
     public static ItemStack ofSeed(long seed, int count){
-        var ret = CmiItems.RESOURCE_PACKAGE.asStack(count);
+        var ret = CmiItems.MINERAL_CLUSTER.asStack(count);
         ret.getOrCreateTag().putLong("seed",seed);
         return ret;
     }

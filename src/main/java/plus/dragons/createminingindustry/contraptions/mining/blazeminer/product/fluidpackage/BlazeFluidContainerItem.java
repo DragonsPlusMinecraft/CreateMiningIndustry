@@ -18,7 +18,7 @@ public class BlazeFluidContainerItem extends Item {
     }
 
     public static ItemStack ofFluid(Fluid fluid){
-        var ret = CmiItems.FLUID_HOLDER.asStack();
+        var ret = CmiItems.BLAZE_FLUID_CONTAINER.asStack();
         ret.getOrCreateTag().putString("fluid",fluid.getFluidType().toString());
         return ret;
     }
